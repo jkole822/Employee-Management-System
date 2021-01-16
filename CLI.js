@@ -1,4 +1,3 @@
-const util = require("util");
 const inquirer = require("inquirer");
 
 const runSearchPrompt = () => {
