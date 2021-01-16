@@ -65,6 +65,7 @@ const runSearch = () => {
 					updateManager();
 					break;
 				case "View all roles":
+					viewRoles();
 					break;
 				case "Add role":
 					break;
@@ -457,5 +458,19 @@ const updateManager = () => {
 					}
 				});
 		});
+	});
+};
+
+const viewRoles = () => {
+	let query = "SELECT title AS Title, salary AS Salary, name AS Department ";
+	query += "FROM role ";
+	query += "INNER JOIN department ON role.department_id = department.id ";
+
+	connection.query(query, (err, res) => {
+		if (err) {
+			return console.log(err);
+		}
+
+		console.table(res);
 	});
 };
