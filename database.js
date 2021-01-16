@@ -20,6 +20,7 @@ connection.connect(err => {
 const query = util.promisify(connection.query.bind(connection));
 
 class DB {
+	// READ
 	viewEmployees(type, answer) {
 		let searchQuery =
 			"SELECT e.id, e.first_name AS 'First Name', e.last_name AS 'Last Name', title AS Title, ";
@@ -94,6 +95,7 @@ class DB {
 		return query("SELECT id, name FROM department");
 	}
 
+	// CREATE
 	addEmployee(employee) {
 		const insertQuery = "INSERT INTO employee SET ?";
 		return query(insertQuery, employee);
@@ -109,6 +111,7 @@ class DB {
 		return query(insertQuery, department);
 	}
 
+	// UPDATE
 	updateEmployeeRole(roleId, employeeId) {
 		const updateQuery = "UPDATE employee SET role_id = ? WHERE id = ?";
 		return query(updateQuery, [roleId, employeeId]);
@@ -119,6 +122,7 @@ class DB {
 		return query(updateQuery, [managerId, employeeId]);
 	}
 
+	// DELETE
 	deleteEmployee(employeeId) {
 		const deleteQuery = "DELETE FROM employee WHERE id = ?";
 		return query(deleteQuery, employeeId);
@@ -135,4 +139,5 @@ class DB {
 	}
 }
 
+// Export single instance of database with connection closure and query closures.
 module.exports = new DB();
