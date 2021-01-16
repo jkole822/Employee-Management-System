@@ -533,9 +533,7 @@ const addRole = () => {
 const removeRole = () => {
 	const query = "SELECT id, title FROM role";
 	connection.query(query, (err, res) => {
-		if (err) {
-			return console.log(err);
-		}
+		if (err) throw err;
 
 		const roles = res.map(role => {
 			return { id: role.id, title: role.title };
