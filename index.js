@@ -1,23 +1,6 @@
 const inquirer = require("inquirer");
-const mysql = require("mysql");
 
-// MySQL DB Connection Information
-const connection = mysql.createConnection({
-	host: "localhost",
-	user: "root",
-	password: "rootpass",
-	database: "employee_tracker",
-});
-
-// Initiate MySQL Connection.
-connection.connect(err => {
-	if (err) {
-		return console.error(`error connecting: ${err.stack}`);
-	}
-	console.log(`connected as id ${connection.threadId}`);
-
-	runSearch();
-});
+const database = require("./database");
 
 const runSearch = () => {
 	inquirer
@@ -86,521 +69,393 @@ const runSearch = () => {
 		});
 };
 
-const viewEmployees = (type, answer) => {
-	let query =
-		"SELECT e.id, e.first_name AS 'First Name', e.last_name AS 'Last Name', title AS Title, ";
-	query +=
-		"salary AS Salary, name AS Department, CONCAT(m.first_name, ' ', m.last_name) AS Manager ";
-	query += "FROM employee e ";
-	query += "INNER JOIN role ON e.role_id = role.id ";
-	query += "INNER JOIN department ON role.department_id = department.id ";
-	query += "LEFT JOIN employee m ON e.manager_id = m.id ";
-
-	if (type === "department") {
-		query += "WHERE department.name = ? ";
-	}
-
-	if (type === "manager") {
-		query += "WHERE CONCAT(m.first_name, ' ', m.last_name) = ? ";
-	}
-
-	query += "ORDER BY e.id ASC";
-
-	connection.query(query, answer, (err, res) => {
-		if (err) throw err;
-
-		console.table(res);
-
+const viewEmployees = async (type, answer) => {
+	try {
+		console.table(await database.viewEmployees(type, answer));
 		runSearch();
-	});
+	} catch (err) {
+		throw err;
+	}
 };
 
-const viewByDept = () => {
-	connection.query("SELECT name FROM department", (err, res) => {
-		if (err) throw err;
+const viewByDept = async () => {
+	try {
+		const query = await database.getDepartments();
 
-		const choices = res.map(department => department.name);
+		const choices = query.map(department => department.name);
 
-		inquirer
-			.prompt({
-				name: "department",
-				type: "list",
-				message: "View by which department?",
-				choices,
-			})
-			.then(answer => {
-				viewEmployees("department", answer.department);
-			});
-	});
+		const answer = await inquirer.prompt({
+			name: "department",
+			type: "list",
+			message: "View by which department?",
+			choices,
+		});
+
+		viewEmployees("department", answer.department);
+	} catch (err) {
+		throw err;
+	}
 };
 
-const viewByManager = () => {
-	let query = "SELECT CONCAT(first_name, ' ', last_name) AS name ";
-	query += "FROM employee ";
-	query += "INNER JOIN role ON employee.role_id = role.id ";
-	query += "WHERE role.title LIKE '%Lead%'";
+const viewByManager = async () => {
+	try {
+		const query = await database.getManagers();
+		const choices = query.map(manager => manager.name);
 
-	connection.query(query, (err, res) => {
-		if (err) throw err;
+		const answer = await inquirer.prompt({
+			name: "manager",
+			type: "list",
+			message: "View by which manager?",
+			choices,
+		});
 
-		const choices = res.map(manager => manager.name);
-
-		inquirer
-			.prompt({
-				name: "manager",
-				type: "list",
-				message: "View by which manager?",
-				choices,
-			})
-			.then(answer => {
-				viewEmployees("manager", answer.manager);
-			});
-	});
+		viewEmployees("manager", answer.manager);
+	} catch (err) {
+		throw err;
+	}
 };
 
-const addEmployee = () => {
-	connection.query("SELECT id, title FROM role", (err, res) => {
-		if (err) throw err;
+const addEmployee = async () => {
+	try {
+		const roleQuery = await database.getRoles();
+		const managerQuery = await database.getManagers();
 
-		const roles = res.map(role => {
+		const roles = roleQuery.map(role => {
 			return { id: role.id, title: role.title };
 		});
 
-		const roleChoices = res.map(role => role.title);
+		const roleChoices = roleQuery.map(role => role.title);
 
-		let query =
-			"SELECT employee.id, CONCAT(first_name, ' ', last_name) AS name ";
-		query += "FROM employee ";
-		query += "INNER JOIN role ON employee.role_id = role.id ";
-		query += "WHERE role.title LIKE '%Lead%'";
-
-		connection.query(query, (err, res) => {
-			if (err) throw err;
-
-			const noManager = { id: 0, name: "No Manager" };
-
-			const managersOne = res.map(manager => {
+		const managers = [
+			...managerQuery.map(manager => {
 				return { id: manager.id, name: manager.name };
-			});
+			}),
+			{ id: 0, name: "No Manager" },
+		];
 
-			const managersTwo = [...managersOne, noManager];
+		const managerChoices = [
+			...managerQuery.map(manager => manager.name),
+			"No Manager",
+		];
 
-			const managerChoicesOne = res.map(manager => manager.name);
+		const answer = await inquirer.prompt([
+			{
+				name: "firstName",
+				type: "input",
+				message: "First name: ",
+			},
+			{
+				name: "lastName",
+				type: "input",
+				message: "Last name: ",
+			},
+			{
+				name: "role",
+				type: "list",
+				message: "Role: ",
+				choices: roleChoices,
+			},
+			{
+				name: "manager",
+				type: "list",
+				message: "Manager: ",
+				choices: managerChoices,
+			},
+		]);
 
-			const managerChoicesTwo = [...managerChoicesOne, "No Manager"];
+		const role = roles.find(role => role.title === answer.role);
+		const roleId = role.id;
+		const manager = managers.find(manager => manager.name === answer.manager);
+		const managerId = manager.id;
+		const employee = {
+			first_name: answer.firstName.trim(),
+			last_name: answer.lastName.trim(),
+			role_id: roleId,
+		};
 
-			inquirer
-				.prompt([
-					{
-						name: "firstName",
-						type: "input",
-						message: "First name: ",
-					},
-					{
-						name: "lastName",
-						type: "input",
-						message: "Last name: ",
-					},
-					{
-						name: "role",
-						type: "list",
-						message: "Role: ",
-						choices: roleChoices,
-					},
-					{
-						name: "manager",
-						type: "list",
-						message: "Manager: ",
-						choices: managerChoicesTwo,
-					},
-				])
-				.then(answer => {
-					const role = roles.find(role => role.title === answer.role);
-					const roleId = role.id;
-					const manager = managersTwo.find(
-						manager => manager.name === answer.manager
-					);
-					const managerId = manager.id;
-					const employee = {
-						first_name: answer.firstName.trim(),
-						last_name: answer.lastName.trim(),
-						role_id: roleId,
-					};
+		if (managerId !== 0) {
+			employee["manager_id"] = managerId;
+		}
 
-					if (managerId !== 0) {
-						employee[manager_id] = managerId;
-					}
+		database.addEmployee(employee);
 
-					let query = "INSERT INTO employee SET ?";
-
-					connection.query(query, employee, (err, res) => {
-						if (err) throw err;
-
-						console.log(res);
-
-						runSearch();
-					});
-				});
-		});
-	});
+		runSearch();
+	} catch (err) {
+		throw err;
+	}
 };
 
-const removeEmployee = () => {
-	let query = "SELECT id, CONCAT(first_name, ' ', last_name) AS name ";
-	query += "FROM employee ";
+const removeEmployee = async () => {
+	try {
+		const query = await database.getEmployees();
 
-	connection.query(query, (err, res) => {
-		if (err) throw err;
-
-		const employees = res.map(employee => {
+		const employees = query.map(employee => {
 			return { id: employee.id, name: employee.name };
 		});
-		const choices = res.map(employee => employee.name);
 
-		inquirer
-			.prompt({
+		const choices = query.map(employee => employee.name);
+
+		const answer = await inquirer.prompt({
+			name: "employee",
+			type: "list",
+			message: "Which employee do you want to remove?",
+			choices,
+		});
+
+		const employee = employees.find(
+			employee => employee.name === answer.employee
+		);
+
+		const employeeId = employee.id;
+
+		database.deleteEmployee(employeeId);
+
+		runSearch();
+	} catch (err) {
+		throw err;
+	}
+};
+
+const updateRole = async () => {
+	try {
+		const employeeQuery = await database.getEmployees();
+		const roleQuery = await database.getRoles();
+
+		const employees = employeeQuery.map(employee => {
+			return { id: employee.id, name: employee.name };
+		});
+		const employeeChoices = employeeQuery.map(employee => employee.name);
+
+		const roles = roleQuery.map(role => {
+			return { id: role.id, title: role.title };
+		});
+
+		const roleChoices = roleQuery.map(role => role.title);
+
+		const answer = await inquirer.prompt([
+			{
 				name: "employee",
 				type: "list",
-				message: "Which employee do you want to remove?",
-				choices,
-			})
-			.then(answer => {
-				const employee = employees.find(
-					employee => employee.name === answer.employee
-				);
-				const employeeId = employee.id;
+				message: "Which employee would you like to update?",
+				choices: employeeChoices,
+			},
+			{
+				name: "role",
+				type: "list",
+				message: "Which role should they be assigned?",
+				choices: roleChoices,
+			},
+		]);
 
-				connection.query(
-					"DELETE FROM employee WHERE id = ?",
-					employeeId,
-					(err, res) => {
-						if (err) throw err;
+		const employee = employees.find(
+			employee => employee.name === answer.employee
+		);
+		const employeeId = employee.id;
+		const role = roles.find(role => role.title === answer.role);
+		const roleId = role.id;
 
-						console.log(res);
+		database.updateEmployeeRole(roleId, employeeId);
 
-						runSearch();
-					}
-				);
-			});
-	});
+		runSearch();
+	} catch (err) {
+		throw err;
+	}
 };
 
-const updateRole = () => {
-	let query = "SELECT employee.id, CONCAT(first_name, ' ', last_name) AS name ";
-	query += "FROM employee ";
+const updateManager = async () => {
+	try {
+		const employeeQuery = await database.getNonManagers();
+		const managerQuery = await database.getManagers();
 
-	connection.query(query, (err, res) => {
-		if (err) throw err;
-
-		const employees = res.map(employee => {
+		const employees = employeeQuery.map(employee => {
 			return { id: employee.id, name: employee.name };
 		});
-		const employeeChoices = res.map(employee => employee.name);
+		const employeeChoices = employeeQuery.map(employee => employee.name);
 
-		connection.query("SELECT id, title FROM role", (err, res) => {
-			if (err) throw err;
-
-			const roles = res.map(role => {
-				return { id: role.id, title: role.title };
-			});
-
-			const roleChoices = res.map(role => role.title);
-
-			inquirer
-				.prompt([
-					{
-						name: "employee",
-						type: "list",
-						message: "Which employee would you like to update?",
-						choices: employeeChoices,
-					},
-					{
-						name: "role",
-						type: "list",
-						message: "Which role should they be assigned?",
-						choices: roleChoices,
-					},
-				])
-				.then(answer => {
-					const employee = employees.find(
-						employee => employee.name === answer.employee
-					);
-					const employeeId = employee.id;
-					const role = roles.find(role => role.title === answer.role);
-					const roleId = role.id;
-
-					connection.query(
-						"UPDATE employee SET role_id = ? WHERE id = ?",
-						[roleId, employeeId],
-						(err, res) => {
-							if (err) throw err;
-
-							console.log(res);
-
-							runSearch();
-						}
-					);
-				});
-		});
-	});
-};
-
-const updateManager = () => {
-	let query = "SELECT employee.id, CONCAT(first_name, ' ', last_name) AS name ";
-	query += "FROM employee ";
-	query += "INNER JOIN role ON employee.role_id = role.id ";
-	query += "WHERE role.title NOT LIKE '%Lead%'";
-
-	connection.query(query, (err, res) => {
-		if (err) throw err;
-
-		const employees = res.map(employee => {
-			return { id: employee.id, name: employee.name };
-		});
-		const employeeChoices = res.map(employee => employee.name);
-
-		let query =
-			"SELECT employee.id, CONCAT(first_name, ' ', last_name) AS name ";
-		query += "FROM employee ";
-		query += "INNER JOIN role ON employee.role_id = role.id ";
-		query += "WHERE role.title LIKE '%Lead%'";
-
-		connection.query(query, (err, res) => {
-			if (err) throw err;
-
-			const noManager = { id: 0, name: "No Manager" };
-
-			const managersOne = res.map(manager => {
+		const managers = [
+			...managerQuery.map(manager => {
 				return { id: manager.id, name: manager.name };
-			});
+			}),
+			{ id: 0, name: "No Manager" },
+		];
 
-			const managersTwo = [...managersOne, noManager];
+		const managerChoices = [
+			...managerQuery.map(manager => manager.name),
+			"No Manager",
+		];
 
-			const managerChoicesOne = res.map(manager => manager.name);
+		const answer = await inquirer.prompt([
+			{
+				name: "employee",
+				type: "list",
+				message: "Which employee would you like to update?",
+				choices: employeeChoices,
+			},
+			{
+				name: "manager",
+				type: "list",
+				message: "Which manager should they be assigned?",
+				choices: managerChoices,
+			},
+		]);
 
-			const managerChoicesTwo = [...managerChoicesOne, "No Manager"];
+		const employee = employees.find(
+			employee => employee.name === answer.employee
+		);
+		const employeeId = employee.id;
+		const manager = managers.find(manager => manager.name === answer.manager);
+		const managerId = manager.id;
 
-			inquirer
-				.prompt([
-					{
-						name: "employee",
-						type: "list",
-						message: "Which employee would you like to update?",
-						choices: employeeChoices,
-					},
-					{
-						name: "manager",
-						type: "list",
-						message: "Which manager should they be assigned?",
-						choices: managerChoicesTwo,
-					},
-				])
-				.then(answer => {
-					const employee = employees.find(
-						employee => employee.name === answer.employee
-					);
-					const employeeId = employee.id;
-					const manager = managersTwo.find(
-						manager => manager.name === answer.manager
-					);
-					const managerId = manager.id;
+		if (managerId === 0) {
+			database.updateEmployeeManager(null, employeeId);
+		} else {
+			database.updateEmployeeManager(managerId, employeeId);
+		}
 
-					if (managerId === 0) {
-						connection.query(
-							"UPDATE employee SET manager_id = null WHERE id = ?",
-							employeeId,
-							(err, res) => {
-								if (err) throw err;
-
-								console.log(res);
-
-								runSearch();
-							}
-						);
-					} else {
-						connection.query(
-							"UPDATE employee SET manager_id = ? WHERE id = ?",
-							[managerId, employeeId],
-							(err, res) => {
-								if (err) throw err;
-
-								console.log(res);
-
-								runSearch();
-							}
-						);
-					}
-				});
-		});
-	});
+		runSearch();
+	} catch (err) {
+		throw err;
+	}
 };
 
-const viewRoles = () => {
-	let query = "SELECT title AS Title, salary AS Salary, name AS Department ";
-	query += "FROM role ";
-	query += "INNER JOIN department ON role.department_id = department.id ";
-
-	connection.query(query, (err, res) => {
-		if (err) throw err;
-
-		console.table(res);
-	});
+const viewRoles = async () => {
+	try {
+		console.table(await database.viewRoles());
+		runSearch();
+	} catch (err) {
+		throw err;
+	}
 };
 
-const addRole = () => {
-	const query = "SELECT id, name FROM department";
-	connection.query(query, (err, res) => {
-		const departments = res.map(department => {
+const addRole = async () => {
+	try {
+		const query = await database.getDepartments();
+
+		const departments = query.map(department => {
 			return {
 				id: department.id,
 				name: department.name,
 			};
 		});
 
-		const choices = res.map(department => department.name);
+		const choices = query.map(department => department.name);
 
-		inquirer
-			.prompt([
-				{
-					name: "title",
-					type: "input",
-					message: "Title: ",
-				},
-				{
-					name: "salary",
-					type: "input",
-					message: "Salary: ",
-				},
-				{
-					name: "department",
-					type: "list",
-					choices,
-				},
-			])
-			.then(answer => {
-				const department = departments.find(
-					department => department.name === answer.department
-				);
-				const departmentId = department.id;
-				const role = {
-					title: answer.title.trim(),
-					salary: answer.salary.trim(),
-					department_id: departmentId,
-				};
-				connection.query("INSERT INTO role SET ?", role, (err, res) => {
-					if (err) throw err;
-
-					console.log(res);
-
-					runSearch();
-				});
-			});
-	});
-};
-
-const removeRole = () => {
-	const query = "SELECT id, title FROM role";
-	connection.query(query, (err, res) => {
-		if (err) throw err;
-
-		const roles = res.map(role => {
-			return { id: role.id, title: role.title };
-		});
-		const choices = res.map(role => role.title);
-
-		inquirer
-			.prompt({
-				name: "role",
+		const answer = await inquirer.prompt([
+			{
+				name: "title",
+				type: "input",
+				message: "Title: ",
+			},
+			{
+				name: "salary",
+				type: "input",
+				message: "Salary: ",
+			},
+			{
+				name: "department",
 				type: "list",
-				message: "Which role do you want to remove?",
 				choices,
-			})
-			.then(answer => {
-				const role = roles.find(role => role.title === answer.role);
-				const roleId = role.id;
+			},
+		]);
 
-				connection.query(
-					"DELETE FROM role WHERE id = ?",
-					roleId,
-					(err, res) => {
-						if (err) throw err;
+		const department = departments.find(
+			department => department.name === answer.department
+		);
+		const departmentId = department.id;
+		const role = {
+			title: answer.title.trim(),
+			salary: answer.salary.trim(),
+			department_id: departmentId,
+		};
 
-						console.log(res);
-
-						runSearch();
-					}
-				);
-			});
-	});
-};
-
-const viewDepartments = () => {
-	const query = "SELECT name AS Department FROM department";
-	connection.query(query, (err, res) => {
-		if (err) throw err;
-
-		console.table(res);
+		database.addRole(role);
 
 		runSearch();
-	});
+	} catch (err) {
+		throw err;
+	}
 };
 
-const addDepartment = () => {
-	inquirer
-		.prompt({
+const removeRole = async () => {
+	try {
+		const query = await database.getRoles();
+
+		const roles = query.map(role => {
+			return { id: role.id, title: role.title };
+		});
+		const choices = query.map(role => role.title);
+
+		const answer = await inquirer.prompt({
+			name: "role",
+			type: "list",
+			message: "Which role do you want to remove?",
+			choices,
+		});
+
+		const role = roles.find(role => role.title === answer.role);
+		const roleId = role.id;
+
+		database.deleteRole(roleId);
+
+		runSearch();
+	} catch (err) {
+		throw err;
+	}
+};
+
+const viewDepartments = async () => {
+	try {
+		console.table(await database.viewDepartments());
+		runSearch();
+	} catch (err) {
+		throw err;
+	}
+};
+
+const addDepartment = async () => {
+	try {
+		const answer = await inquirer.prompt({
 			name: "name",
 			type: "input",
 			message: "Name: ",
-		})
-		.then(answer => {
-			connection.query(
-				"INSERT INTO department (name) VALUES (?)",
-				answer.name,
-				(err, res) => {
-					if (err) throw err;
-
-					console.log(res);
-
-					runSearch();
-				}
-			);
 		});
+
+		database.addDepartment(answer.name);
+
+		runSearch();
+	} catch (err) {
+		throw err;
+	}
 };
 
-const removeDepartment = () => {
-	const query = "SELECT id, name FROM department";
-	connection.query(query, (err, res) => {
-		if (err) throw err;
+const removeDepartment = async () => {
+	try {
+		const query = await database.getDepartments();
 
-		const departments = res.map(department => {
+		const departments = query.map(department => {
 			return { id: department.id, name: department.name };
 		});
-		const choices = res.map(department => department.name);
 
-		inquirer
-			.prompt({
-				name: "department",
-				type: "list",
-				message: "Which department do you want to remove?",
-				choices,
-			})
-			.then(answer => {
-				const department = departments.find(
-					department => department.name === answer.department
-				);
-				const departmentId = department.id;
+		const choices = query.map(department => department.name);
 
-				connection.query(
-					"DELETE FROM department WHERE id = ?",
-					departmentId,
-					(err, res) => {
-						if (err) throw err;
+		const answer = await inquirer.prompt({
+			name: "department",
+			type: "list",
+			message: "Which department do you want to remove?",
+			choices,
+		});
 
-						console.log(res);
+		const department = departments.find(
+			department => department.name === answer.department
+		);
+		const departmentId = department.id;
 
-						runSearch();
-					}
-				);
-			});
-	});
+		database.deleteDepartment(departmentId);
+
+		runSearch();
+	} catch (err) {
+		throw err;
+	}
 };
+
+runSearch();
