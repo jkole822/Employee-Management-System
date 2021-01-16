@@ -1,72 +1,62 @@
-const inquirer = require("inquirer");
-
 const database = require("./database");
+const {
+	runSearchPrompt,
+	viewByDeptPrompt,
+	viewByManagerPrompt,
+	addEmployeePrompt,
+	removeEmployeePrompt,
+	updateRolePrompt,
+	updateManagerPrompt,
+	addRolePrompt,
+	removeRolePrompt,
+	addDepartmentPrompt,
+	removeDepartmentPrompt,
+} = require("./CLI.js");
 
-const runSearch = () => {
-	inquirer
-		.prompt({
-			name: "action",
-			type: "list",
-			message: "What would you like to do?",
-			choices: [
-				"View all employees",
-				"View all employees by department",
-				"View all employees by manager",
-				"Add employee",
-				"Remove employee",
-				"Update employee role",
-				"Update employee manager",
-				"View all roles",
-				"Add role",
-				"Remove role",
-				"View all departments",
-				"Add department",
-				"Remove department",
-			],
-		})
-		.then(answer => {
-			switch (answer.action) {
-				case "View all employees":
-					viewEmployees();
-					break;
-				case "View all employees by department":
-					viewByDept();
-					break;
-				case "View all employees by manager":
-					viewByManager();
-					break;
-				case "Add employee":
-					addEmployee();
-					break;
-				case "Remove employee":
-					removeEmployee();
-					break;
-				case "Update employee role":
-					updateRole();
-					break;
-				case "Update employee manager":
-					updateManager();
-					break;
-				case "View all roles":
-					viewRoles();
-					break;
-				case "Add role":
-					addRole();
-					break;
-				case "Remove role":
-					removeRole();
-					break;
-				case "View all departments":
-					viewDepartments();
-					break;
-				case "Add department":
-					addDepartment();
-					break;
-				case "Remove department":
-					removeDepartment();
-					break;
-			}
-		});
+const runSearch = async () => {
+	const answer = await runSearchPrompt();
+
+	switch (answer.action) {
+		case "View all employees":
+			viewEmployees();
+			break;
+		case "View all employees by department":
+			viewByDept();
+			break;
+		case "View all employees by manager":
+			viewByManager();
+			break;
+		case "Add employee":
+			addEmployee();
+			break;
+		case "Remove employee":
+			removeEmployee();
+			break;
+		case "Update employee role":
+			updateRole();
+			break;
+		case "Update employee manager":
+			updateManager();
+			break;
+		case "View all roles":
+			viewRoles();
+			break;
+		case "Add role":
+			addRole();
+			break;
+		case "Remove role":
+			removeRole();
+			break;
+		case "View all departments":
+			viewDepartments();
+			break;
+		case "Add department":
+			addDepartment();
+			break;
+		case "Remove department":
+			removeDepartment();
+			break;
+	}
 };
 
 const viewEmployees = async (type, answer) => {
@@ -84,12 +74,7 @@ const viewByDept = async () => {
 
 		const choices = query.map(department => department.name);
 
-		const answer = await inquirer.prompt({
-			name: "department",
-			type: "list",
-			message: "View by which department?",
-			choices,
-		});
+		const answer = await viewByDeptPrompt(choices);
 
 		viewEmployees("department", answer.department);
 	} catch (err) {
@@ -100,14 +85,10 @@ const viewByDept = async () => {
 const viewByManager = async () => {
 	try {
 		const query = await database.getManagers();
+
 		const choices = query.map(manager => manager.name);
 
-		const answer = await inquirer.prompt({
-			name: "manager",
-			type: "list",
-			message: "View by which manager?",
-			choices,
-		});
+		const answer = await viewByManagerPrompt(choices);
 
 		viewEmployees("manager", answer.manager);
 	} catch (err) {
@@ -138,30 +119,7 @@ const addEmployee = async () => {
 			"No Manager",
 		];
 
-		const answer = await inquirer.prompt([
-			{
-				name: "firstName",
-				type: "input",
-				message: "First name: ",
-			},
-			{
-				name: "lastName",
-				type: "input",
-				message: "Last name: ",
-			},
-			{
-				name: "role",
-				type: "list",
-				message: "Role: ",
-				choices: roleChoices,
-			},
-			{
-				name: "manager",
-				type: "list",
-				message: "Manager: ",
-				choices: managerChoices,
-			},
-		]);
+		const answer = await addEmployeePrompt(roleChoices, managerChoices);
 
 		const role = roles.find(role => role.title === answer.role);
 		const roleId = role.id;
@@ -195,12 +153,7 @@ const removeEmployee = async () => {
 
 		const choices = query.map(employee => employee.name);
 
-		const answer = await inquirer.prompt({
-			name: "employee",
-			type: "list",
-			message: "Which employee do you want to remove?",
-			choices,
-		});
+		const answer = await removeEmployeePrompt(choices);
 
 		const employee = employees.find(
 			employee => employee.name === answer.employee
@@ -232,20 +185,7 @@ const updateRole = async () => {
 
 		const roleChoices = roleQuery.map(role => role.title);
 
-		const answer = await inquirer.prompt([
-			{
-				name: "employee",
-				type: "list",
-				message: "Which employee would you like to update?",
-				choices: employeeChoices,
-			},
-			{
-				name: "role",
-				type: "list",
-				message: "Which role should they be assigned?",
-				choices: roleChoices,
-			},
-		]);
+		const answer = await updateRolePrompt(employeeChoices, roleChoices);
 
 		const employee = employees.find(
 			employee => employee.name === answer.employee
@@ -284,20 +224,7 @@ const updateManager = async () => {
 			"No Manager",
 		];
 
-		const answer = await inquirer.prompt([
-			{
-				name: "employee",
-				type: "list",
-				message: "Which employee would you like to update?",
-				choices: employeeChoices,
-			},
-			{
-				name: "manager",
-				type: "list",
-				message: "Which manager should they be assigned?",
-				choices: managerChoices,
-			},
-		]);
+		const answer = await updateManagerPrompt(employeeChoices, managerChoices);
 
 		const employee = employees.find(
 			employee => employee.name === answer.employee
@@ -340,23 +267,7 @@ const addRole = async () => {
 
 		const choices = query.map(department => department.name);
 
-		const answer = await inquirer.prompt([
-			{
-				name: "title",
-				type: "input",
-				message: "Title: ",
-			},
-			{
-				name: "salary",
-				type: "input",
-				message: "Salary: ",
-			},
-			{
-				name: "department",
-				type: "list",
-				choices,
-			},
-		]);
+		const answer = await addRolePrompt(choices);
 
 		const department = departments.find(
 			department => department.name === answer.department
@@ -385,12 +296,7 @@ const removeRole = async () => {
 		});
 		const choices = query.map(role => role.title);
 
-		const answer = await inquirer.prompt({
-			name: "role",
-			type: "list",
-			message: "Which role do you want to remove?",
-			choices,
-		});
+		const answer = await removeRolePrompt(choices);
 
 		const role = roles.find(role => role.title === answer.role);
 		const roleId = role.id;
@@ -414,11 +320,7 @@ const viewDepartments = async () => {
 
 const addDepartment = async () => {
 	try {
-		const answer = await inquirer.prompt({
-			name: "name",
-			type: "input",
-			message: "Name: ",
-		});
+		const answer = await addDepartmentPrompt();
 
 		database.addDepartment(answer.name);
 
@@ -438,12 +340,7 @@ const removeDepartment = async () => {
 
 		const choices = query.map(department => department.name);
 
-		const answer = await inquirer.prompt({
-			name: "department",
-			type: "list",
-			message: "Which department do you want to remove?",
-			choices,
-		});
+		const answer = await removeDepartmentPrompt(choices);
 
 		const department = departments.find(
 			department => department.name === answer.department
