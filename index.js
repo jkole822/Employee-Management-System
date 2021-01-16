@@ -110,27 +110,25 @@ const viewEmployees = (type, answer) => {
 	});
 };
 
-// Initiate MySQL Connection.
-connection.connect(err => {
-	if (err) {
-		return console.error(`error connecting: ${err.stack}`);
-	}
-	console.log(`connected as id ${connection.threadId}`);
-
-	runSearch();
-});
-
 const viewByDept = () => {
-	inquirer
-		.prompt({
-			name: "department",
-			type: "list",
-			message: "Which department?",
-			choices: ["Development", "Quality Assuarance", "Operations"],
-		})
-		.then(answer => {
-			viewEmployees("department", answer.department);
-		});
+	connection.query("SELECT name FROM department", (err, res) => {
+		if (err) {
+			return console.log(err);
+		}
+
+		const choices = res.map(department => department.name);
+
+		inquirer
+			.prompt({
+				name: "department",
+				type: "list",
+				message: "Which department?",
+				choices,
+			})
+			.then(answer => {
+				viewEmployees("department", answer.department);
+			});
+	});
 };
 
 const viewByManager = () => {
