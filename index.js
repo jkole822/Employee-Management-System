@@ -68,8 +68,10 @@ const runSearch = () => {
 					viewRoles();
 					break;
 				case "Add role":
+					addRole();
 					break;
 				case "Remove role":
+					removeRole();
 					break;
 				case "View all departments":
 					break;
@@ -472,5 +474,98 @@ const viewRoles = () => {
 		}
 
 		console.table(res);
+	});
+};
+
+const addRole = () => {
+	const query = "SELECT id, name FROM department";
+	connection.query(query, (err, res) => {
+		const departments = res.map(department => {
+			return {
+				id: department.id,
+				name: department.name,
+			};
+		});
+
+		const choices = res.map(department => department.name);
+
+		inquirer
+			.prompt([
+				{
+					name: "title",
+					type: "input",
+					message: "Title: ",
+				},
+				{
+					name: "salary",
+					type: "input",
+					message: "Salary: ",
+				},
+				{
+					name: "department",
+					type: "list",
+					choices,
+				},
+			])
+			.then(answer => {
+				const department = departments.find(
+					department => department.name === answer.department
+				);
+				const departmentId = department.id;
+				const role = {
+					title: answer.title.trim(),
+					salary: answer.salary.trim(),
+					department_id: departmentId,
+				};
+				connection.query("INSERT INTO role SET ?", role, (err, res) => {
+					if (err) {
+						return console.log(err);
+					}
+
+					console.log(res);
+
+					runSearch();
+				});
+			});
+	});
+};
+
+const removeRole = () => {
+	const query = "SELECT id, title FROM role";
+	connection.query(query, (err, res) => {
+		if (err) {
+			return console.log(err);
+		}
+
+		const roles = res.map(role => {
+			return { id: role.id, title: role.title };
+		});
+		const choices = res.map(role => role.title);
+
+		inquirer
+			.prompt({
+				name: "role",
+				type: "list",
+				message: "Which role do you want to remove?",
+				choices,
+			})
+			.then(answer => {
+				const role = roles.find(role => role.title === answer.role);
+				const roleId = role.id;
+
+				connection.query(
+					"DELETE FROM role WHERE id = ?",
+					roleId,
+					(err, res) => {
+						if (err) {
+							return console.log(err);
+						}
+
+						console.log(res);
+
+						runSearch();
+					}
+				);
+			});
 	});
 };
