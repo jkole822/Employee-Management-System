@@ -74,6 +74,7 @@ const runSearch = () => {
 					removeRole();
 					break;
 				case "View all departments":
+					viewDepartments();
 					break;
 				case "Add department":
 					break;
@@ -106,9 +107,8 @@ const viewEmployees = (type, answer) => {
 	query += "ORDER BY e.id ASC";
 
 	connection.query(query, answer, (err, res) => {
-		if (err) {
-			return console.log(err);
-		}
+		if (err) throw err;
+
 		console.table(res);
 
 		runSearch();
@@ -117,9 +117,7 @@ const viewEmployees = (type, answer) => {
 
 const viewByDept = () => {
 	connection.query("SELECT name FROM department", (err, res) => {
-		if (err) {
-			return console.log(err);
-		}
+		if (err) throw err;
 
 		const choices = res.map(department => department.name);
 
@@ -143,9 +141,7 @@ const viewByManager = () => {
 	query += "WHERE role.title LIKE '%Lead%'";
 
 	connection.query(query, (err, res) => {
-		if (err) {
-			return console.log(err);
-		}
+		if (err) throw err;
 
 		const choices = res.map(manager => manager.name);
 
@@ -164,9 +160,7 @@ const viewByManager = () => {
 
 const addEmployee = () => {
 	connection.query("SELECT id, title FROM role", (err, res) => {
-		if (err) {
-			return console.log(err);
-		}
+		if (err) throw err;
 
 		const roles = res.map(role => {
 			return { id: role.id, title: role.title };
@@ -181,9 +175,7 @@ const addEmployee = () => {
 		query += "WHERE role.title LIKE '%Lead%'";
 
 		connection.query(query, (err, res) => {
-			if (err) {
-				return console.log(err);
-			}
+			if (err) throw err;
 
 			const noManager = { id: 0, name: "No Manager" };
 
@@ -242,9 +234,7 @@ const addEmployee = () => {
 					let query = "INSERT INTO employee SET ?";
 
 					connection.query(query, employee, (err, res) => {
-						if (err) {
-							return console.log(err);
-						}
+						if (err) throw err;
 
 						console.log(res);
 
@@ -260,9 +250,7 @@ const removeEmployee = () => {
 	query += "FROM employee ";
 
 	connection.query(query, (err, res) => {
-		if (err) {
-			return console.log(err);
-		}
+		if (err) throw err;
 
 		const employees = res.map(employee => {
 			return { id: employee.id, name: employee.name };
@@ -286,9 +274,7 @@ const removeEmployee = () => {
 					"DELETE FROM employee WHERE id = ?",
 					employeeId,
 					(err, res) => {
-						if (err) {
-							return console.log(err);
-						}
+						if (err) throw err;
 
 						console.log(res);
 
@@ -304,9 +290,7 @@ const updateRole = () => {
 	query += "FROM employee ";
 
 	connection.query(query, (err, res) => {
-		if (err) {
-			return console.log(err);
-		}
+		if (err) throw err;
 
 		const employees = res.map(employee => {
 			return { id: employee.id, name: employee.name };
@@ -314,9 +298,7 @@ const updateRole = () => {
 		const employeeChoices = res.map(employee => employee.name);
 
 		connection.query("SELECT id, title FROM role", (err, res) => {
-			if (err) {
-				return console.log(err);
-			}
+			if (err) throw err;
 
 			const roles = res.map(role => {
 				return { id: role.id, title: role.title };
@@ -351,9 +333,7 @@ const updateRole = () => {
 						"UPDATE employee SET role_id = ? WHERE id = ?",
 						[roleId, employeeId],
 						(err, res) => {
-							if (err) {
-								return console.log(err);
-							}
+							if (err) throw err;
 
 							console.log(res);
 
@@ -372,9 +352,7 @@ const updateManager = () => {
 	query += "WHERE role.title NOT LIKE '%Lead%'";
 
 	connection.query(query, (err, res) => {
-		if (err) {
-			return console.log(err);
-		}
+		if (err) throw err;
 
 		const employees = res.map(employee => {
 			return { id: employee.id, name: employee.name };
@@ -388,9 +366,7 @@ const updateManager = () => {
 		query += "WHERE role.title LIKE '%Lead%'";
 
 		connection.query(query, (err, res) => {
-			if (err) {
-				return console.log(err);
-			}
+			if (err) throw err;
 
 			const noManager = { id: 0, name: "No Manager" };
 
@@ -434,9 +410,7 @@ const updateManager = () => {
 							"UPDATE employee SET manager_id = null WHERE id = ?",
 							employeeId,
 							(err, res) => {
-								if (err) {
-									return console.log(err);
-								}
+								if (err) throw err;
 
 								console.log(res);
 
@@ -448,9 +422,7 @@ const updateManager = () => {
 							"UPDATE employee SET manager_id = ? WHERE id = ?",
 							[managerId, employeeId],
 							(err, res) => {
-								if (err) {
-									return console.log(err);
-								}
+								if (err) throw err;
 
 								console.log(res);
 
@@ -469,9 +441,7 @@ const viewRoles = () => {
 	query += "INNER JOIN department ON role.department_id = department.id ";
 
 	connection.query(query, (err, res) => {
-		if (err) {
-			return console.log(err);
-		}
+		if (err) throw err;
 
 		console.table(res);
 	});
@@ -518,9 +488,7 @@ const addRole = () => {
 					department_id: departmentId,
 				};
 				connection.query("INSERT INTO role SET ?", role, (err, res) => {
-					if (err) {
-						return console.log(err);
-					}
+					if (err) throw err;
 
 					console.log(res);
 
@@ -555,9 +523,7 @@ const removeRole = () => {
 					"DELETE FROM role WHERE id = ?",
 					roleId,
 					(err, res) => {
-						if (err) {
-							return console.log(err);
-						}
+						if (err) throw err;
 
 						console.log(res);
 
@@ -565,5 +531,14 @@ const removeRole = () => {
 					}
 				);
 			});
+	});
+};
+
+const viewDepartments = () => {
+	const query = "SELECT name AS Department FROM department";
+	connection.query(query, (err, res) => {
+		if (err) throw err;
+
+		console.table(res);
 	});
 };
