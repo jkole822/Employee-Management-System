@@ -80,8 +80,7 @@ const runSearch = () => {
 					addDepartment();
 					break;
 				case "Remove department":
-					break;
-				case "Exit":
+					removeDepartment();
 					break;
 			}
 		});
@@ -541,6 +540,8 @@ const viewDepartments = () => {
 		if (err) throw err;
 
 		console.table(res);
+
+		runSearch();
 	});
 };
 
@@ -564,4 +565,42 @@ const addDepartment = () => {
 				}
 			);
 		});
+};
+
+const removeDepartment = () => {
+	const query = "SELECT id, name FROM department";
+	connection.query(query, (err, res) => {
+		if (err) throw err;
+
+		const departments = res.map(department => {
+			return { id: department.id, name: department.name };
+		});
+		const choices = res.map(department => department.name);
+
+		inquirer
+			.prompt({
+				name: "department",
+				type: "list",
+				message: "Which department do you want to remove?",
+				choices,
+			})
+			.then(answer => {
+				const department = departments.find(
+					department => department.name === answer.department
+				);
+				const departmentId = department.id;
+
+				connection.query(
+					"DELETE FROM department WHERE id = ?",
+					departmentId,
+					(err, res) => {
+						if (err) throw err;
+
+						console.log(res);
+
+						runSearch();
+					}
+				);
+			});
+	});
 };
