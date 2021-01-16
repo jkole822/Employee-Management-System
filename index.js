@@ -59,8 +59,10 @@ const runSearch = () => {
 					removeEmployee();
 					break;
 				case "Update employee role":
+					updateRole();
 					break;
 				case "Update employee manager":
+					updateManager();
 					break;
 				case "View all roles":
 					break;
@@ -122,7 +124,7 @@ const viewByDept = () => {
 			.prompt({
 				name: "department",
 				type: "list",
-				message: "Which department?",
+				message: "View by which department?",
 				choices,
 			})
 			.then(answer => {
@@ -148,7 +150,7 @@ const viewByManager = () => {
 			.prompt({
 				name: "manager",
 				type: "list",
-				message: "Which department?",
+				message: "View by which manager?",
 				choices,
 			})
 			.then(answer => {
@@ -163,7 +165,7 @@ const addEmployee = () => {
 			return console.log(err);
 		}
 
-		const rolesObj = res.map(role => {
+		const roles = res.map(role => {
 			return { id: role.id, title: role.title };
 		});
 
@@ -180,11 +182,17 @@ const addEmployee = () => {
 				return console.log(err);
 			}
 
-			const managersObj = res.map(manager => {
+			const noManager = { id: 0, name: "No Manager" };
+
+			const managersOne = res.map(manager => {
 				return { id: manager.id, name: manager.name };
 			});
 
-			const managerChoices = res.map(manager => manager.name);
+			const managersTwo = [...managersOne, noManager];
+
+			const managerChoicesOne = res.map(manager => manager.name);
+
+			const managerChoicesTwo = [...managerChoicesOne, "No Manager"];
 
 			inquirer
 				.prompt([
@@ -208,13 +216,13 @@ const addEmployee = () => {
 						name: "manager",
 						type: "list",
 						message: "Manager: ",
-						choices: managerChoices,
+						choices: managerChoicesTwo,
 					},
 				])
 				.then(answer => {
-					const role = rolesObj.find(role => role.title === answer.role);
+					const role = roles.find(role => role.title === answer.role);
 					const roleId = role.id;
-					const manager = managersObj.find(
+					const manager = managersTwo.find(
 						manager => manager.name === answer.manager
 					);
 					const managerId = manager.id;
@@ -222,10 +230,14 @@ const addEmployee = () => {
 						first_name: answer.firstName.trim(),
 						last_name: answer.lastName.trim(),
 						role_id: roleId,
-						manager_id: managerId,
 					};
 
+					if (managerId !== 0) {
+						employee[manager_id] = managerId;
+					}
+
 					let query = "INSERT INTO employee SET ?";
+
 					connection.query(query, employee, (err, res) => {
 						if (err) {
 							return console.log(err);
@@ -249,7 +261,7 @@ const removeEmployee = () => {
 			return console.log(err);
 		}
 
-		const employeeObj = res.map(employee => {
+		const employees = res.map(employee => {
 			return { id: employee.id, name: employee.name };
 		});
 		const choices = res.map(employee => employee.name);
@@ -258,14 +270,15 @@ const removeEmployee = () => {
 			.prompt({
 				name: "employee",
 				type: "list",
-				message: "Employee to remove: ",
+				message: "Which employee do you want to remove?",
 				choices,
 			})
 			.then(answer => {
-				const employee = employeeObj.find(
+				const employee = employees.find(
 					employee => employee.name === answer.employee
 				);
 				const employeeId = employee.id;
+
 				connection.query(
 					"DELETE FROM employee WHERE id = ?",
 					employeeId,
@@ -280,5 +293,169 @@ const removeEmployee = () => {
 					}
 				);
 			});
+	});
+};
+
+const updateRole = () => {
+	let query = "SELECT employee.id, CONCAT(first_name, ' ', last_name) AS name ";
+	query += "FROM employee ";
+
+	connection.query(query, (err, res) => {
+		if (err) {
+			return console.log(err);
+		}
+
+		const employees = res.map(employee => {
+			return { id: employee.id, name: employee.name };
+		});
+		const employeeChoices = res.map(employee => employee.name);
+
+		connection.query("SELECT id, title FROM role", (err, res) => {
+			if (err) {
+				return console.log(err);
+			}
+
+			const roles = res.map(role => {
+				return { id: role.id, title: role.title };
+			});
+
+			const roleChoices = res.map(role => role.title);
+
+			inquirer
+				.prompt([
+					{
+						name: "employee",
+						type: "list",
+						message: "Which employee would you like to update?",
+						choices: employeeChoices,
+					},
+					{
+						name: "role",
+						type: "list",
+						message: "Which role should they be assigned?",
+						choices: roleChoices,
+					},
+				])
+				.then(answer => {
+					const employee = employees.find(
+						employee => employee.name === answer.employee
+					);
+					const employeeId = employee.id;
+					const role = roles.find(role => role.title === answer.role);
+					const roleId = role.id;
+
+					connection.query(
+						"UPDATE employee SET role_id = ? WHERE id = ?",
+						[roleId, employeeId],
+						(err, res) => {
+							if (err) {
+								return console.log(err);
+							}
+
+							console.log(res);
+
+							runSearch();
+						}
+					);
+				});
+		});
+	});
+};
+
+const updateManager = () => {
+	let query = "SELECT employee.id, CONCAT(first_name, ' ', last_name) AS name ";
+	query += "FROM employee ";
+	query += "INNER JOIN role ON employee.role_id = role.id ";
+	query += "WHERE role.title NOT LIKE '%Lead%'";
+
+	connection.query(query, (err, res) => {
+		if (err) {
+			return console.log(err);
+		}
+
+		const employees = res.map(employee => {
+			return { id: employee.id, name: employee.name };
+		});
+		const employeeChoices = res.map(employee => employee.name);
+
+		let query =
+			"SELECT employee.id, CONCAT(first_name, ' ', last_name) AS name ";
+		query += "FROM employee ";
+		query += "INNER JOIN role ON employee.role_id = role.id ";
+		query += "WHERE role.title LIKE '%Lead%'";
+
+		connection.query(query, (err, res) => {
+			if (err) {
+				return console.log(err);
+			}
+
+			const noManager = { id: 0, name: "No Manager" };
+
+			const managersOne = res.map(manager => {
+				return { id: manager.id, name: manager.name };
+			});
+
+			const managersTwo = [...managersOne, noManager];
+
+			const managerChoicesOne = res.map(manager => manager.name);
+
+			const managerChoicesTwo = [...managerChoicesOne, "No Manager"];
+
+			inquirer
+				.prompt([
+					{
+						name: "employee",
+						type: "list",
+						message: "Which employee would you like to update?",
+						choices: employeeChoices,
+					},
+					{
+						name: "manager",
+						type: "list",
+						message: "Which manager should they be assigned?",
+						choices: managerChoicesTwo,
+					},
+				])
+				.then(answer => {
+					const employee = employees.find(
+						employee => employee.name === answer.employee
+					);
+					const employeeId = employee.id;
+					const manager = managersTwo.find(
+						manager => manager.name === answer.manager
+					);
+					const managerId = manager.id;
+
+					if (managerId === 0) {
+						connection.query(
+							"UPDATE employee SET manager_id = null WHERE id = ?",
+							employeeId,
+							(err, res) => {
+								if (err) {
+									return console.log(err);
+								}
+
+								console.log(res);
+
+								runSearch();
+							}
+						);
+					} else {
+						connection.query(
+							"UPDATE employee SET manager_id = ? WHERE id = ?",
+							[managerId, employeeId],
+							(err, res) => {
+								if (err) {
+									return console.log(err);
+								}
+
+								console.log(res);
+
+								runSearch();
+							}
+						);
+					}
+				});
+		});
 	});
 };
