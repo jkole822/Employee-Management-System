@@ -1,5 +1,5 @@
-const mysql = require("mysql");
 const inquirer = require("inquirer");
+const mysql = require("mysql");
 
 // MySQL DB Connection Information
 const connection = mysql.createConnection({
@@ -34,6 +34,11 @@ const runSearch = () => {
 				"Update employee role",
 				"Update employee manager",
 				"View all roles",
+				"Add role",
+				"Remove role",
+				"View all departments",
+				"Add department",
+				"Remove department",
 			],
 		})
 		.then(answer => {
@@ -51,6 +56,7 @@ const runSearch = () => {
 					addEmployee();
 					break;
 				case "Remove employee":
+					removeEmployee();
 					break;
 				case "Update employee role":
 					break;
@@ -67,6 +73,8 @@ const runSearch = () => {
 				case "Add department":
 					break;
 				case "Remove department":
+					break;
+				case "Exit":
 					break;
 			}
 		});
@@ -97,8 +105,20 @@ const viewEmployees = (type, answer) => {
 			return console.log(err);
 		}
 		console.table(res);
+
+		runSearch();
 	});
 };
+
+// Initiate MySQL Connection.
+connection.connect(err => {
+	if (err) {
+		return console.error(`error connecting: ${err.stack}`);
+	}
+	console.log(`connected as id ${connection.threadId}`);
+
+	runSearch();
+});
 
 const viewByDept = () => {
 	inquirer
@@ -201,8 +221,8 @@ const addEmployee = () => {
 					);
 					const managerId = manager.id;
 					const employee = {
-						first_name: answer.firstName,
-						last_name: answer.lastName,
+						first_name: answer.firstName.trim(),
+						last_name: answer.lastName.trim(),
 						role_id: roleId,
 						manager_id: managerId,
 					};
@@ -214,8 +234,53 @@ const addEmployee = () => {
 						}
 
 						console.log(res);
+
+						runSearch();
 					});
 				});
 		});
+	});
+};
+
+const removeEmployee = () => {
+	let query = "SELECT id, CONCAT(first_name, ' ', last_name) AS name ";
+	query += "FROM employee ";
+
+	connection.query(query, (err, res) => {
+		if (err) {
+			return console.log(err);
+		}
+
+		const employeeObj = res.map(employee => {
+			return { id: employee.id, name: employee.name };
+		});
+		const choices = res.map(employee => employee.name);
+
+		inquirer
+			.prompt({
+				name: "employee",
+				type: "list",
+				message: "Employee to remove: ",
+				choices,
+			})
+			.then(answer => {
+				const employee = employeeObj.find(
+					employee => employee.name === answer.employee
+				);
+				const employeeId = employee.id;
+				connection.query(
+					"DELETE FROM employee WHERE id = ?",
+					employeeId,
+					(err, res) => {
+						if (err) {
+							return console.log(err);
+						}
+
+						console.log(res);
+
+						runSearch();
+					}
+				);
+			});
 	});
 };
