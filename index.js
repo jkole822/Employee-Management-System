@@ -77,6 +77,7 @@ const runSearch = () => {
 					viewDepartments();
 					break;
 				case "Add department":
+					addDepartment();
 					break;
 				case "Remove department":
 					break;
@@ -541,4 +542,26 @@ const viewDepartments = () => {
 
 		console.table(res);
 	});
+};
+
+const addDepartment = () => {
+	inquirer
+		.prompt({
+			name: "name",
+			type: "input",
+			message: "Name: ",
+		})
+		.then(answer => {
+			connection.query(
+				"INSERT INTO department (name) VALUES (?)",
+				answer.name,
+				(err, res) => {
+					if (err) throw err;
+
+					console.log(res);
+
+					runSearch();
+				}
+			);
+		});
 };
