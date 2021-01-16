@@ -1,0 +1,16 @@
+{
+	"name": "Employee-Tracker",
+	"version": "1.0.0",
+	"description": "",
+	"main": "app.js",
+	"scripts": {
+		"start": "node index"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"inquirer": "^7.3.3",
+		"mysql": "^2.18.1"
+	}
+}
