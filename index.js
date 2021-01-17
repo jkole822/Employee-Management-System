@@ -1,3 +1,4 @@
+// require("console.table");
 const database = require("./database");
 const {
 	runSearchPrompt,
