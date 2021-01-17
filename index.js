@@ -204,7 +204,7 @@ const updateRole = async () => {
 
 const updateManager = async () => {
 	try {
-		const employeeQuery = await database.getNonManagers();
+		const employeeQuery = await database.getEmployees();
 		const managerQuery = await database.getManagers();
 
 		const employees = employeeQuery.map(employee => {

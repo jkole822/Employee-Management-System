@@ -47,11 +47,33 @@ const addEmployeePrompt = (roleChoices, managerChoices) => {
 			name: "firstName",
 			type: "input",
 			message: "First name: ",
+			validate(input) {
+				const regex = /[-!@#$%^&*()_+|~=`{}\[\]:";'<>?,.\/]|\d/;
+
+				if (!input) {
+					return console.log("\nFirst name required");
+				} else if (input.match(regex)) {
+					return console.log("\nFirst name cannot include numbers or symbols");
+				}
+
+				return true;
+			},
 		},
 		{
 			name: "lastName",
 			type: "input",
 			message: "Last name: ",
+			validate(input) {
+				const regex = /[-!@#$%^&*()_+|~=`{}\[\]:";'<>?,.\/]|\d/;
+
+				if (!input) {
+					return console.log("\nLast name required");
+				} else if (input.match(regex)) {
+					return console.log("\nLast name cannot include numbers or symbols");
+				}
+
+				return true;
+			},
 		},
 		{
 			name: "role",
@@ -117,11 +139,33 @@ const addRolePrompt = choices => {
 			name: "title",
 			type: "input",
 			message: "Title: ",
+			validate(input) {
+				const regex = /[-!@#$%^&*()_+|~=`{}\[\]:";'<>?,.\/]|\d/;
+
+				if (!input) {
+					return console.log("\nTitle required");
+				} else if (input.match(regex)) {
+					return console.log("\nTitle cannot include numbers or symbols");
+				}
+
+				return true;
+			},
 		},
 		{
 			name: "salary",
 			type: "input",
 			message: "Salary: ",
+			validate(input) {
+				const regex = /\D/;
+
+				if (!input) {
+					return console.log("\nSalary required");
+				} else if (input.match(regex)) {
+					return console.log("\nSalary can only include numbers");
+				}
+
+				return true;
+			},
 		},
 		{
 			name: "department",
@@ -146,6 +190,17 @@ const addDepartmentPrompt = () => {
 		name: "name",
 		type: "input",
 		message: "Name: ",
+		validate(input) {
+			const regex = /[-!@#$%^&*()_+|~=`{}\[\]:";'<>?,.\/]|\d/;
+
+			if (!input) {
+				return console.log("\nName required");
+			} else if (input.match(regex)) {
+				return console.log("\nName cannot include numbers or symbols");
+			}
+
+			return true;
+		},
 	});
 };
 

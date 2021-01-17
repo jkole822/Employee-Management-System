@@ -77,16 +77,6 @@ class DB {
 		return query(searchQuery);
 	}
 
-	getNonManagers() {
-		let searchQuery =
-			"SELECT employee.id, CONCAT(first_name, ' ', last_name) AS name ";
-		searchQuery += "FROM employee ";
-		searchQuery += "INNER JOIN role ON employee.role_id = role.id ";
-		searchQuery += "WHERE role.title NOT LIKE '%Lead%'";
-
-		return query(searchQuery);
-	}
-
 	getRoles() {
 		return query("SELECT id, title FROM role");
 	}
