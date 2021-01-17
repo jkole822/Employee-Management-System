@@ -4,7 +4,7 @@
 
 ## Description
 
-Node CLI application that enables the user to view, add, remove, and update employees, employee roles, and departments within their organization.
+Node CLI/CMS application that enables the user to view, add, remove, and update employees, employee roles, and departments within their organization.
 
 ## Table of Contents
 
