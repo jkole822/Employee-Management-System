@@ -8,15 +8,15 @@ Node CLI application that enables the user to view, add, remove, and update empl
 
 ## Table of Contents
 
-- [Demonstration](#demonstration)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Technology](#technology)
 - [Questions](#questions)
 - [License](#license)
 
 ## Demonstration
 
-![Demo of Tracker](./assets/tracker.gif)
+[View Demonstration](https://drive.google.com/file/d/1AFHiHP3eBE_hvS8kcP4UEnk0SbmvJDHr/view)
 
 ## Installation
 
@@ -29,6 +29,12 @@ Either use a GUI or the mySQL CLI to run the schema.sql script. To start up the 
 To designate a manager role, you must specify "Lead" within the role title when creating a new role.
 
 You cannot delete a department without deleting its constituent roles, and you cannot delete a role without either reassigning employees from that role, or deleting the employees with that role.
+
+## Technology
+
+- Node.js
+- mySQL
+- Inquirer
 
 ## Questions
 
