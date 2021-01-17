@@ -17,6 +17,7 @@ Node CLI application that enables the user to view, add, remove, and update empl
 ## Demonstration
 
 [View Demonstration](https://drive.google.com/file/d/1AFHiHP3eBE_hvS8kcP4UEnk0SbmvJDHr/view)
+
 [View Budget Demonstration](https://drive.google.com/file/d/1tGskTJd2hPNGT390EaHJLe-aS0k7D--a/view)
 
 ## Installation
