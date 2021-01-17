@@ -19,6 +19,7 @@ const runSearchPrompt = () => {
 			"View all departments",
 			"Add department",
 			"Remove department",
+			"View utilized budget by department",
 		],
 	});
 };
@@ -213,6 +214,15 @@ const removeDepartmentPrompt = choices => {
 	});
 };
 
+const viewBudgetPrompt = choices => {
+	return inquirer.prompt({
+		name: "department",
+		type: "list",
+		message: "Which department budget would you like to view?",
+		choices,
+	});
+};
+
 module.exports = {
 	runSearchPrompt,
 	viewByDeptPrompt,
@@ -225,4 +235,5 @@ module.exports = {
 	removeRolePrompt,
 	addDepartmentPrompt,
 	removeDepartmentPrompt,
+	viewBudgetPrompt,
 };

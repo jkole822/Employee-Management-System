@@ -85,6 +85,16 @@ class DB {
 		return query("SELECT id, name FROM department");
 	}
 
+	getBudget(departmentId) {
+		let searchQuery = "SELECT name AS Department, SUM(salary) AS Budget ";
+		searchQuery += "FROM department ";
+		searchQuery += "INNER JOIN role ON role.department_id = department.id ";
+		searchQuery += "INNER JOIN employee ON employee.role_id = role.id ";
+		searchQuery += "WHERE department.id = ?";
+
+		return query(searchQuery, departmentId);
+	}
+
 	// CREATE
 	addEmployee(employee) {
 		const insertQuery = "INSERT INTO employee SET ?";
